@@ -1,0 +1,34 @@
+* dfc466a (HEAD -> main) Elimina develop.txt de main
+* 214f879 (arreglo-develop) Añade develop.txt a develop
+* 6454df2 (avanzado/main) Añade main.txt a main
+*   69e74cc Merge branch 'develop'
+|\  
+* \   d71cf02 Merge branch 'develop'
+|\ \  
+* \ \   11407fa (origin/main, origin/HEAD) Merge pull request #1 from Matew1980/feature/mi-feature
+|\ \ \  
+| * | | e88a00f (origin/feature/mi-feature, feature/mi-feature) Añadir cambio de mi feature
+|/ / /  
+| | | * 8a8b55a (develop) Aañade develop.txt a develop
+| | |/  
+| | * 6ecf1cb (avanzado/develop, feature/registro) Añade formulario de registro
+| |/  
+| * 17140cf (feature/login) Añade formulario de login
+|/  
+* 7781152 (origin/develop) Añadir gitignore
+* f750782 Rama main último commit
+* ead809a Add first line to dos.txt
+*   b71e361 Merge branch 'main' of https://github.com/Matew1980/proyectoGit
+|\  
+| * 5fb7d6e Initial commit
+*   8e8c0d2 mergeo2 con Ramados
+|\  
+| * e19e836 (RamaDos) RamaDos segundo commit
+* | 1110218 mergeo con RamaDos
+|\| 
+| * 8772632 RamaDos primer commit
+* | 8cf3735 Rama main segundo commit
+|/  
+| * 4ba0e74 (textoDos) Rama olvidada
+|/  
+* 3f8fcde Rama main primer commit
