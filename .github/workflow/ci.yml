@@ -1,5 +1,5 @@
 
-name: CI
+name: CI DEVELOP
 
 on:
   pull_request:
