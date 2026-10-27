@@ -1,0 +1,43 @@
+
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+  workflow_dispatch:
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    permissions: 
+      contents: write
+    steps:
+      - name: Descargar el repositorio 
+        uses: actions/checkout@4
+        
+      - name: Registrar feature en README
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PUSH_BRANCH: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BRANCH="$PR_BRANCH"
+          else
+            BRANCH="$PUSH_BRANCH"
+          fi
+
+          if [[ "$BRANCH" == feature/* ]]; then
+            LINE="Añadida feature: $BRANCH"
+
+            if grep -Fxq "$LINE" README.md; then
+              echo "La feature ya estaba registrada."
+            else
+              echo "$LINE" >> README.md
+              echo "Feature registrada: $BRANCH"
+            fi
+          else
+            echo "La rama $BRANCH no es una feature. No se modifica el README."
+          fi
+  
