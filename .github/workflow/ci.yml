@@ -32,40 +32,42 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          # En un PR todavía no modificamos el README.
+          echo "feature_branch=" >> "$GITHUB_OUTPUT"
+
+          # En un PR abierto o actualizado esperamos a la fusión.
           if [[ "$EVENT_NAME" != "push" ]]; then
-            echo "El evento es $EVENT_NAME. El README se actualizará después de la fusión."
+            echo "Evento $EVENT_NAME: esperando a la integración en develop."
             exit 0
           fi
 
-          # Recuperar el nombre de la feature del mensaje del merge commit.
+          # Obtener el mensaje del último commit.
           MESSAGE=$(git log -1 --pretty=%B)
 
+          # Reconocer el formato habitual de un merge commit de GitHub.
           if [[ "$MESSAGE" =~ from[[:space:]]+[^/]+/(feature/[^[:space:]]+) ]]; then
             BRANCH="${BASH_REMATCH[1]}"
           else
-            echo "No se ha podido identificar una feature en el último commit."
-            echo "feature_branch=" >> "$GITHUB_OUTPUT"
+            echo "No se ha identificado una feature en el último commit."
+            echo "Usa Create a merge commit para que el nombre de la rama aparezca en el mensaje."
             exit 0
           fi
 
-          echo "Feature identificada: $BRANCH"
           echo "feature_branch=$BRANCH" >> "$GITHUB_OUTPUT"
-
           LINE="Añadida feature: $BRANCH"
 
           if grep -Fxq "$LINE" README.md; then
-            echo "La feature ya estaba registrada."
+            echo "La feature ya está registrada en README.md."
           else
             echo "$LINE" >> README.md
-            echo "Se ha añadido la feature al README."
+            echo "Feature registrada: $BRANCH"
           fi
 
-      - name: Crear PR para guardar el cambio del README
+      - name: Crear PR para guardar el README actualizado
         if: steps.feature.outputs.feature_branch != ''
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          base: develop
           branch: automation/update-readme
           delete-branch: true
           commit-message: "docs: registrar feature en README"
@@ -79,12 +81,17 @@ jobs:
 
     steps:
       - name: Validar token de desarrollo
+        shell: powershell
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-        shell: powershell
         run: |
-          if (-not $env:LOCAL_DEV_TOKEN) {
+          if ([string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
             Write-Error "La variable local LOCAL_DEV_TOKEN no está disponible."
+            exit 1
+          }
+
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN)) {
+            Write-Error "El secreto DEV_TOKEN no está disponible."
             exit 1
           }
 
