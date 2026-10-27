@@ -1,21 +1,22 @@
 
-name: Prueba self-hosted runner y secrets 
+name: Prueba self-hosted runner y secrets
 
 on:
   push:
+
 jobs:
   comprobar-token:
     runs-on: self-hosted
 
     steps:
-      - name: Comparar token de desarrollo 
+      - name: Comparar token de desarrollo
         shell: powershell
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
         run: |
-          if ($env:DEV_TOKEN -Ceq $env:LOCAL_DEV_TOKEN) {
+          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
             Write-Output "CORRECTO: Los tokens coinciden."
           } else {
-          Write-Output "ERROR: Los tokens coinciden."
-          exit 1
+            Write-Output "ERROR: Los tokens no coinciden."
+            exit 1
           }
