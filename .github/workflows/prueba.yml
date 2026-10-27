@@ -1,6 +1,6 @@
 
 name: Prueba self-hosted runner y secrets
-#comentario de para probar si con esto va 
+
 on:
   push:
 
@@ -9,11 +9,16 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Comparar token de desarrollo
+      - name: Comprobar variable local
         shell: cmd
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
         run: |
+          if not defined LOCAL_DEV_TOKEN (
+            echo ERROR: La variable local no esta disponible.
+            exit /b 1
+          )
+          echo CORRECTO: La variable local esta disponible.
           if "%DEV_TOKEN%"=="%LOCAL_DEV_TOKEN%" (
             echo CORRECTO: Los tokens coinciden.
           ) else (
