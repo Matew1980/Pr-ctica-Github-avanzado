@@ -1,0 +1,97 @@
+
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - develop
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identificar feature y actualizar README
+        id: feature
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # En un PR todavía no modificamos el README.
+          if [[ "$EVENT_NAME" != "push" ]]; then
+            echo "El evento es $EVENT_NAME. El README se actualizará después de la fusión."
+            exit 0
+          fi
+
+          # Recuperar el nombre de la feature del mensaje del merge commit.
+          MESSAGE=$(git log -1 --pretty=%B)
+
+          if [[ "$MESSAGE" =~ from[[:space:]]+[^/]+/(feature/[^[:space:]]+) ]]; then
+            BRANCH="${BASH_REMATCH[1]}"
+          else
+            echo "No se ha podido identificar una feature en el último commit."
+            echo "feature_branch=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Feature identificada: $BRANCH"
+          echo "feature_branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+          LINE="Añadida feature: $BRANCH"
+
+          if grep -Fxq "$LINE" README.md; then
+            echo "La feature ya estaba registrada."
+          else
+            echo "$LINE" >> README.md
+            echo "Se ha añadido la feature al README."
+          fi
+
+      - name: Crear PR para guardar el cambio del README
+        if: steps.feature.outputs.feature_branch != ''
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automation/update-readme
+          delete-branch: true
+          commit-message: "docs: registrar feature en README"
+          title: "Actualizar README con la feature integrada"
+          body: "Actualización automática del README tras integrar una feature en develop."
+          add-paths: README.md
+
+  validate-dev:
+    needs: update-readme
+    runs-on: self-hosted
+
+    steps:
+      - name: Validar token de desarrollo
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        shell: pwsh
+        run: |
+          if (-not $env:LOCAL_DEV_TOKEN) {
+            Write-Error "La variable local LOCAL_DEV_TOKEN no está disponible."
+            exit 1
+          }
+
+          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
+            Write-Output "CORRECTO: Los tokens coinciden."
+          }
+          else {
+            Write-Error "ERROR: Los tokens no coinciden."
+            exit 1
+          }
