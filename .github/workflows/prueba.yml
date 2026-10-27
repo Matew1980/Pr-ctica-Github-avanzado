@@ -10,13 +10,13 @@ jobs:
 
     steps:
       - name: Comparar token de desarrollo
-        shell: powershell
+        shell: cmd
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
         run: |
-          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
-            Write-Output "CORRECTO: Los tokens coinciden."
-          } else {
-            Write-Output "ERROR: Los tokens no coinciden."
-            exit 1
-          }
+          if "%DEV_TOKEN%"=="%LOCAL_DEV_TOKEN%" (
+            echo CORRECTO: Los tokens coinciden.
+          ) else (
+            echo ERROR: Los tokens no coinciden.
+            exit /b 1
+          )
