@@ -81,7 +81,7 @@ jobs:
       - name: Validar token de desarrollo
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-        shell: pwsh
+        shell: powershell
         run: |
           if (-not $env:LOCAL_DEV_TOKEN) {
             Write-Error "La variable local LOCAL_DEV_TOKEN no está disponible."
