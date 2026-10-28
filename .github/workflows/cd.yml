@@ -1,1 +1,100 @@
 
+name: CD Production
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Actualizar versión del README
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          echo "new_version=" >> "$GITHUB_OUTPUT"
+
+          # Solo actualizamos la versión después de un push a main.
+          if [[ "$EVENT_NAME" != "push" ]]; then
+            echo "Evento $EVENT_NAME: no se modifica la versión."
+            exit 0
+          fi
+
+          if ! grep -qE 'AppVersion-[0-9]+' README.md; then
+            echo "ERROR: No se encontró AppVersion-N en README.md."
+            exit 1
+          fi
+
+          CURRENT_VERSION=$(grep -oE 'AppVersion-[0-9]+' README.md | head -n 1)
+          CURRENT_NUMBER=${CURRENT_VERSION#AppVersion-}
+          NEXT_NUMBER=$((CURRENT_NUMBER + 1))
+          NEXT_VERSION="AppVersion-$NEXT_NUMBER"
+          DATE_TIME=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          sed -i "0,/$CURRENT_VERSION/s//$NEXT_VERSION/" README.md
+
+          echo "" >> README.md
+          echo "Fecha de actualización: $DATE_TIME" >> README.md
+
+          echo "new_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Versión actualizada: $CURRENT_VERSION -> $NEXT_VERSION"
+
+      - name: Crear PR con la nueva versión
+        if: steps.version.outputs.new_version != ''
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: automation/update-version
+          delete-branch: true
+          commit-message: "chore: actualizar versión de la aplicación"
+          title: "Actualizar versión de la aplicación"
+          body: "Actualización automática de la versión y la fecha en README.md."
+          add-paths: README.md
+
+  validate-prod:
+    needs: update-version
+    runs-on: self-hosted
+
+    steps:
+      - name: Validar token de producción
+        shell: powershell -ExecutionPolicy Bypass -File {0}
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:LOCAL_PROD_TOKEN)) {
+            Write-Error "La variable local LOCAL_PROD_TOKEN no está disponible."
+            exit 1
+          }
+
+          if ([string]::IsNullOrEmpty($env:PROD_TOKEN)) {
+            Write-Error "El secreto PROD_TOKEN no está disponible."
+            exit 1
+          }
+
+          if ($env:PROD_TOKEN -ceq $env:LOCAL_PROD_TOKEN) {
+            Write-Output "CORRECTO: Los tokens de producción coinciden."
+          }
+          else {
+            Write-Error "ERROR: Los tokens de producción no coinciden."
+            exit 1
+          }
